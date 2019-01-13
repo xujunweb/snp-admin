@@ -44,12 +44,11 @@ export default [
         component: () => import('@/view/single-page/home')
       },
       {
-        path: '/home/plugManage_page/:appid',
+        path: '/home/plugManage_page/:id',
         name: 'plugManage_page',
         meta: {
-          access: [1],
           icon: 'md-person',
-          title: '插件管理'
+          title: '文章详情'
         },
         component: () => import('@/view/plugManage/plugManage.vue')
       }

@@ -6,41 +6,17 @@
           <span class="title">昵称：</span>
           <Input v-model="formInline.nickName" placeholder="请输入昵称" clearable style="width: 200px" />
         </FormItem>
-        <FormItem prop="signature">
-          <span class="title">介绍：</span>
-          <Input v-model="formInline.signature" placeholder="请输入介绍" clearable style="width: 200px" />
-        </FormItem>
-        <FormItem prop="principalName">
-          <span class="title">主体名称：</span>
-          <Input v-model="formInline.principalName" placeholder="请输入主体名称" clearable style="width: 200px" />
-        </FormItem>
-        <FormItem prop="sysName">
-          <span class="title">所属：</span>
-          <Select v-model="formInline.sysName" style="width:200px">
-            <Option v-for="item in typeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
-          </Select>
-        </FormItem>
-        <FormItem prop="auditStatus">
+        <FormItem prop="status">
           <span class="title">审核状态：</span>
-          <Select v-model="formInline.auditStatus" style="width:200px">
+          <Select v-model="formInline.status" style="width:200px">
             <Option v-for="item in statusList" :value="item.value" :key="item.value">{{ item.label }}</Option>
           </Select>
         </FormItem>
-        <FormItem prop="clientName">
-          <span class="title">姓名：</span>
-          <Input v-model="formInline.clientName" placeholder="请输入姓名" clearable style="width: 200px" />
-        </FormItem>
-        <FormItem prop="clientPhone">
-          <span class="title">电话：</span>
-          <Input v-model="formInline.clientPhone" placeholder="请输入电话" number clearable style="width: 200px" />
-        </FormItem>
-        <FormItem prop="clientUserId">
-          <span class="title">会员ID：</span>
-          <Input v-model="formInline.clientUserId" placeholder="请输入会员ID" number clearable style="width: 200px" />
-        </FormItem>
-        <FormItem prop="clientUserId">
-          <span class="title">订单号：</span>
-          <Input v-model="formInline.orderNo" placeholder="请输入订单号" number clearable style="width: 200px" />
+        <FormItem prop="type">
+          <span class="title">文章类型：</span>
+          <Select v-model="formInline.article_type" style="width:200px">
+            <Option v-for="item in typeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
+          </Select>
         </FormItem>
         <FormItem>
           <Button type="primary" @click="handleSubmit('formInline')">搜索</Button>
@@ -48,118 +24,114 @@
         </FormItem>
       </Form>
     </div>
-    <Table border :columns="columns" :data="tableData" stripe ref="userTable"></Table>
+    <Table border :columns="columns" :data="tableData" stripe ref="userTable" @on-selection-change="seletcOpiton"></Table>
     <div class="page">
       <Page :total="total" show-total show-elevator :page-size="pageSize" :current="thisPage" @on-change="pageSwitch" />
     </div>
-    <a id="hrefToExportTable" style="postion: absolute;left: -10px;top: -10px;width: 0px;height: 0px;"></a>
-    <reviseConfig :xcxData="xcxInfo" v-if="reviseConfig.show" />
-    <submitCode :xcxData="xcxInfo" v-if="submitCode.show" />
-    <submitAudit :xcxData="xcxInfo" v-if="submitAudit.show" />
-    <expUser :xcxData="xcxInfo" v-if="expUser.show" />
-    <modifyComp :xcxData="xcxInfo" v-if="modifyComp.show" />
+    <Modal v-model="showEdit"
+           title="编辑审核结果"
+           width="300"
+           :loading="loading"
+           @on-ok="syncToLocalTemplate">
+      <div class="modal-content">
+        <Form ref="statusLine" :model="statusLine" :rules="ruleInline">
+          <FormItem prop="sysName">
+            <span class="label">编辑状态：</span>
+            <Select v-model="statusLine.status" style="width:200px">
+              <Option v-for="item in statusList" :value="item.value" :key="item.value">{{ item.label}}</Option>
+            </Select>
+          </FormItem>
+        </Form>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <script>
-  import { getXcxList,getTestQrcode } from '@/api/home'
-  import reviseConfig from '../../components/operation/reviseConfig.vue'
-  import submitCode from '../../components/operation/submitCode.vue'
-  import submitAudit from '../../components/operation/submitAudit.vue'
-  import expUser from '../../components/operation/expUser'
-  import modifyComp from '../../components/operation/modifyComp.vue'
+  import { getXcxList,updateArticle } from '@/api/home'
   import {mapGetters} from 'vuex'
   //表单选项
   import tableData from './tableData'
   export default {
     name: 'home',
     components: {
-      reviseConfig,submitCode,submitAudit,expUser,modifyComp
     },
     data () {
       return {
         total:0,
         formInline: {
-          nickName:'',
-          signature:'',     //账号介绍
-          principalName:'',   //主体名称
-          sysName:'',       //所属
-          auditStatus:'',   //审核状态
-          clientName:'',      //用户姓名
-          clientPhone:'',         //用户电话
-          clientUserId:'',        //用户ID
-          orderNo:'',             //订单号
+          status:'0',  //审核状态
+          article_type:'',     //文章类型
+          title:'',   //文章标题
+          category:'',       //文章分类
+        },
+        statusLine:{
+          status:'',  //审核状态
         },
         pageSize: 10,
         thisPage:1,   //当前页
         ruleInline: {
-          phone: [
-            // { required: true, message: 'Please fill in the password.', trigger: 'blur' },
-            // { len: 11, message: '请输入正确的手机号', trigger: 'blur' }
-            // { type: 'string', min:11, message: '请输入数字', trigger: 'blur' },
+          title: [
           ]
         },
         statusList:[
-          {value:'',label:'全部'},
-          {value:'-1',label:'未提审'},
-          {value:'0',label:'审核成功'},
-          {value:'1',label:'审核失败'},
-          {value:'2',label:'审核中'},
+          {value:'0',label:'待审核'},
+          {value:'1',label:'审核通过'},
+          {value:'2',label:'审核不通过'},
         ],
         statusMap:{
-          '-1':'未提审',
-          '0':'审核成功',
-          '1':'审核失败',
-          '2':'审核中',
+          '0':'待审核',
+          '1':'审核通过',
+          '2':'审核不通过',
         },
         typeList:[
           {value:'',label:'全部'},
-          {value:'md',label:'门店小程序'},
-          {value:'wds',label:'专业小程序'},
-          {value:'pt',label:'平台小程序'},
-          {value:'qy',label:'区域小程序'},
+          {value:'0',label:'资讯'},
+          {value:'1',label:'视频'},
+          {value:'2',label:'朋友圈'},
+          {value:'3',label:'解答'},
         ],
         columns: tableData(this),
         tableData: [],
-        testQrcodeUrl:"",
-        access:app.$store.state.user.access
+        access:app.$store.state.user.access,
+        loading:false,
+        showEdit:false,
       }
     },
     computed: {
-      ...mapGetters({
-        'xcxInfo':'getxcxInfo',
-        'reviseConfig':'getreviseConfig',
-        'submitCode':'getsubmitCode',
-        'submitAudit':'getsubmitAudit',
-        'expUser':'getexpUser',
-        'modifyComp':'getmodifyComp',
-      })
+
     },
     created () {
-      if(this.access[0]===0){
-        console.log("this.access",this.access);
-        this.$router.push({
-          name: 'login'
-        })
-        return;
-      }
+      // if(this.access[0]===0){
+      //   console.log("this.access",this.access);
+      //   this.$router.push({
+      //     name: 'login'
+      //   })
+      //   return;
+      // }
       // 组件实例化生命周期
       this.getXcxList(1).catch((data)=>{
         this.$Message.error(data.msg)
       })
     },
     methods: {
+      //选择选项
+      seletcOpiton(e){
+        this.appIds = e.map((item)=>{
+          return item.authorizerAppId
+        })
+      },
       /**
-       * 请求小程序列表
+       * 请求文章列表
        * @param {type} p 查询的页码(不传的时候搜索当前分页)
        * */
       getXcxList (p) {
         return new Promise((resolve, reject)=>{
-          getXcxList({pageIndex: p||this.thisPage, pageSize: this.pageSize, ...this.formInline}).then(res => {
-            console.log('小程序列表----',res)
-            if(res.data.code === '0'){
-              this.tableData = res.data.data.data
-              this.total = res.data.data.allRecord
+          getXcxList({pageNum: p||this.thisPage, pageSize: this.pageSize, ...this.formInline}).then(res => {
+            console.log('文章列表----',res)
+            if(res.data.code === 100){
+              this.tableData = res.data.data.list
+              this.total = res.data.data.total
               resolve(res.data)
             }else {
               reject(res.data)
@@ -186,43 +158,54 @@
           }
         })
       },
-      handleReset (name) {
-        this.$refs[name].resetFields()
-      },
-      //显示文案
-      showText (title,content) {
-        this.$Modal.info({
-          title: title,
-          content: content
-        })
-      },
-      //查看大图
-      showImg(title,img,type){
-        if(type){
-          getTestQrcode(img.authorizerAppId).then(res => {
-            console.log('体验版----',res)
-            if(res.data.code === '0'){
-              this.lookBigimg(title,res.data.data)
-            }
-          }).catch(err => {
-            console.log(err)
-          })
+      /**
+       * 修改审核状态
+       * @itemData {obj}  一键时需要的模板信息
+       * @type  {num} 一键时需要的同步类型
+       */
+      syncToLocalTemplate(itemData,type){
+        var postData = null
+        if(itemData){
+          postData = {...itemData}
         }else {
-          this.lookBigimg(title,img)
+          postData = {...this.itemData}
         }
-
-      },
-      //执行查看大图
-      lookBigimg(title,img){
-        this.$Modal.info({title: title, width:'250', closable:true,
-          render:(h,params)=>{
-            console.log(params)
-            return h('img',{
-              attrs:{src:img},
-              style:{maxWidth:'200px'}
+        if(!this.formInline.type){
+          this.$Message.error('请选择类型')
+          setTimeout(() => {
+            this.loading = false
+            this.$nextTick(() => {
+              this.loading = true
             })
+          }, 1000)
+          return
+        }
+        var data = {
+          "id": postData.id,
+          "status": this.statusLine.status,
+        }
+        return updateArticle(data).then((res)=>{
+          if(res.data.code === 100){
+            this.showEdit = false
+            this.getXcxList().then((res)=>{
+              this.$Message.success('操作成功!')
+            }).catch(err => {
+              this.$Message.error('操作失败!')
+            })
+          }else {
+            this.$Message.error(res.data.msg)
           }
         })
+      },
+      //查看详情
+      goDetial(id){
+        app.$router.push({
+          name: 'plugManage_page',
+          params: { id:id}})
+      },
+      //重置搜索
+      handleReset (name) {
+        this.$refs[name].resetFields()
       },
       // 分页切换
       pageSwitch (page) {

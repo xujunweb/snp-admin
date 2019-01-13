@@ -30,7 +30,7 @@ export default {
     handleSubmit ({ username, password }) {
       this.handleLogin({ username, password }).then(res => {
         console.log("login:",res);
-        if(res.code === '0' && res.data.type){
+        if(res.code === 100){
           this.$router.push({
             name: 'home'
           })

@@ -15,6 +15,7 @@ class HttpRequest {
       headers: {
         // 'Access-Control-Allow-Origin': '*',
         // 'Content-Type': 'application/json'
+        'ticket':store.state.user.token
       },
     }
     return config
@@ -60,6 +61,7 @@ class HttpRequest {
   }
   request (options) {
     const instance = axios.create()
+    options.headers = {...this.getInsideConfig().headers,...options.headers}
     options = Object.assign(this.getInsideConfig(), options)
     this.interceptors(instance, options.url)
     return instance(options)

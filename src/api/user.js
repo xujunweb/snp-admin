@@ -6,7 +6,7 @@ export const login = ({ username, password }) => {
     password
   }
   return axios.request({
-    url: 'user',
+    url: 'user/login',
     data,
     method: 'post'
   })
