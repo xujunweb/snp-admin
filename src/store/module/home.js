@@ -29,6 +29,11 @@ export default {
     getxcxInfo(state){
       return state.xcxInfo
     },
+    testGetter(a,b,c){
+      console.log(this)
+      console.log(a,b,c)
+      return a
+    }
   },
   mutations: {
     setPopupConfig (state,config) {

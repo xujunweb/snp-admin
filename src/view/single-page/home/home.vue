@@ -21,6 +21,7 @@
         <FormItem>
           <Button type="primary" @click="handleSubmit('formInline')">搜索</Button>
           <Button @click="handleReset('formInline')" style="margin-left: 8px">清除条件</Button>
+          <Button type="primary" @click="deploy()">批量修改审核状态</Button>
         </FormItem>
       </Form>
     </div>
@@ -38,17 +39,69 @@
           <FormItem prop="sysName">
             <span class="label">编辑状态：</span>
             <Select v-model="statusLine.status" style="width:200px">
-              <Option v-for="item in statusList" :value="item.value" :key="item.value">{{ item.label}}</Option>
+              <Option v-for="item in statusListTwo" :value="item.value" :key="item.value">{{ item.label}}</Option>
             </Select>
           </FormItem>
         </Form>
       </div>
     </Modal>
+    <Drawer
+      title="文章详情"
+      v-model="isShowLog"
+      width="75%"
+      :mask-closable="false"
+    >
+      <div v-if="artInfo" class="plugManage">
+        <Button type="primary" @click="showEdit=true">编辑审核状态</Button>
+        <div class="item">
+          <div class="left">用户头像</div>
+          <div class="right">
+            <img :src="artInfo.user.avatar"/>
+          </div>
+        </div>
+        <div class="item">
+          <div class="left">用户昵称</div>
+          <div class="right">{{artInfo.user.nickname}}</div>
+        </div>
+        <div class="item">
+          <div class="left">用户身份</div>
+          <div class="right">{{userMap[artInfo.user.type]}}</div>
+        </div>
+        <div class="item">
+          <div class="left">审核状态</div>
+          <div class="right">{{statusMap[artInfo.status]}}</div>
+        </div>
+        <div class="item">
+          <div class="left">文章标题</div>
+          <div class="right">{{artInfo.title}}</div>
+        </div>
+        <div class="item">
+          <div class="left">文章内容</div>
+          <div class="right">{{artInfo.content}}</div>
+        </div>
+        <div class="item">
+          <div class="left">文章所附文件</div>
+          <div class="right" v-if="artInfo.type=='0'">
+            <Poptip placement="bottom" v-for="img in artInfo.img_urls.split(',')">
+              <img :src="img" style="width: 150px;cursor: pointer;"/>
+              <img :src="img" style="maxWidth:'400px'" slot="content"/>
+            </Poptip>
+          </div>
+          <div class="right" v-if="artInfo.type=='1'">
+            {{artInfo.img_urls}}
+          </div>
+        </div>
+      </div>
+      <div class="log-drawer-footer">
+        <Button style="margin-right: 8px" @click="isShowLog = false">收起</Button>
+      </div>
+    </Drawer>
   </div>
 </template>
 
 <script>
   import { getXcxList,updateArticle } from '@/api/home'
+  import * as mapType from './mapType'
   import {mapGetters} from 'vuex'
   //表单选项
   import tableData from './tableData'
@@ -58,9 +111,11 @@
     },
     data () {
       return {
+        artInfo:null,
+        isShowLog:false,
         total:0,
         formInline: {
-          status:'0',  //审核状态
+          status:'',  //审核状态
           article_type:'',     //文章类型
           title:'',   //文章标题
           category:'',       //文章分类
@@ -68,22 +123,27 @@
         statusLine:{
           status:'',  //审核状态
         },
-        pageSize: 10,
+        pageSize: 20,
         thisPage:1,   //当前页
         ruleInline: {
           title: [
           ]
         },
         statusList:[
+          {value:'',label:'全部'},
           {value:'0',label:'待审核'},
           {value:'1',label:'审核通过'},
           {value:'2',label:'审核不通过'},
         ],
-        statusMap:{
-          '0':'待审核',
-          '1':'审核通过',
-          '2':'审核不通过',
-        },
+        statusListTwo:[
+          {value:'0',label:'待审核'},
+          {value:'1',label:'审核通过'},
+          {value:'2',label:'审核不通过'},
+        ],
+        userMap:mapType.userMap,
+        statusMap:mapType.statusMap,
+        classMap:mapType.classMap,
+        typeMap:mapType.typeMap,
         typeList:[
           {value:'',label:'全部'},
           {value:'0',label:'资讯'},
@@ -96,10 +156,11 @@
         access:app.$store.state.user.access,
         loading:false,
         showEdit:false,
+        isAll:false,  //批量审核状态
+        appIds:null,  //批量id
       }
     },
     computed: {
-
     },
     created () {
       // if(this.access[0]===0){
@@ -118,7 +179,7 @@
       //选择选项
       seletcOpiton(e){
         this.appIds = e.map((item)=>{
-          return item.authorizerAppId
+          return item.id
         })
       },
       /**
@@ -163,14 +224,24 @@
        * @itemData {obj}  一键时需要的模板信息
        * @type  {num} 一键时需要的同步类型
        */
-      syncToLocalTemplate(itemData,type){
-        var postData = null
-        if(itemData){
-          postData = {...itemData}
+      syncToLocalTemplate(){
+        var data = null
+        if(this.isAll){
+          if(!this.appIds || !this.appIds.length){
+            this.$Message.error('请至少选择一篇文章修改')
+            return
+          }
+          data = {
+            'ids':this.appIds.join(','),
+            "status": this.statusLine.status,
+          }
         }else {
-          postData = {...this.itemData}
+          data = {
+            "id": this.artInfo.id,
+            "status": this.statusLine.status,
+          }
         }
-        if(!this.formInline.type){
+        if(!this.statusLine.status){
           this.$Message.error('请选择类型')
           setTimeout(() => {
             this.loading = false
@@ -180,28 +251,38 @@
           }, 1000)
           return
         }
-        var data = {
-          "id": postData.id,
-          "status": this.statusLine.status,
-        }
         return updateArticle(data).then((res)=>{
           if(res.data.code === 100){
             this.showEdit = false
-            this.getXcxList().then((res)=>{
+
+            if(this.isAll){
+              this.getXcxList(this.thisPage)
+              this.isAll = false
               this.$Message.success('操作成功!')
-            }).catch(err => {
-              this.$Message.error('操作失败!')
-            })
+              return
+            }
+            this.tableData[this.itemIndex].status = this.statusLine.status
+            this.statusLine.status = ''
+            if(this.artInfo){
+              this.artInfo.status = this.statusLine.status
+            }
+            this.$Message.success('操作成功!')
           }else {
             this.$Message.error(res.data.msg)
           }
         })
       },
+      //批量审核
+      deploy(){
+        this.isAll = true
+        this.showEdit = true
+      },
       //查看详情
       goDetial(id){
-        app.$router.push({
-          name: 'plugManage_page',
-          params: { id:id}})
+        this.isShowLog = true
+        // app.$router.push({
+        //   name: 'plugManage_page',
+        //   params: { id:id}})
       },
       //重置搜索
       handleReset (name) {
@@ -240,6 +321,23 @@
       }
       .ivu-btn-primary{
         margin-left: 65px;
+      }
+    }
+  }
+  .plugManage{
+    padding: 15px 15px 40px 15px;
+    .item{
+      padding-top: 10px;
+      padding-bottom: 10px;border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: flex-start;font-size: 14px;
+
+      line-height: 22px;
+      .left{
+        margin-right: 15px;color: #333;width: 100px;flex-basis: 100px;
+      }
+      .right{
+        color: #999;font-size: 14px;flex: 1;
       }
     }
   }

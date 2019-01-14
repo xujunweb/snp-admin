@@ -2,12 +2,12 @@ import DateUtil from '@/libs/DateUtil'
 export default (that)=>{
   return [
     {type: 'selection', width: 60, align: 'center'},
-    {title: 'ID',width:50, key: 'id'},
+    {title: 'ID',width:100, key: 'id'},
     {title: '发布时间',width:150, key: 'id',render:(h,params)=>{
         return h('span',DateUtil.dateToStr('yyyy-MM-dd HH:mm:ss',new Date(params.row.insert_time)))
       }
     },
-    {title: '用户昵称', key: 'nickName',minWidth:100,render:(h,params)=>{
+    {title: '用户昵称', key: 'nickName',width:100,render:(h,params)=>{
         return h('span',params.row.user.nickname)
     }},
     {title: '用户头像', key: 'headImg',width:100,
@@ -22,17 +22,17 @@ export default (that)=>{
           ]);
       }
     },
-    {title: '用户身份', key: 'nickName',minWidth:70,render:(h,params)=>{
-        return h('span',params.row.user.type)
+    {title: '用户身份', key: 'nickName',minWidth:80,render:(h,params)=>{
+        return h('span',that.userMap[params.row.user.type])
       }
     },
     {title: '文章类型', key: 'article_types',minWidth:70,render:(h,params)=>{
-        return h('span',params.row.article_type)
+        return h('span',that.typeMap[params.row.article_type])
     }},
     {title: '文章分类', key: 'nickName',minWidth:70,render:(h,params)=>{
-        return h('span',params.row.category)
+        return h('span',that.classMap[params.row.category])
     }},
-    {title: '文章标题', key: 'title',minWidth:70,render: (h, params) => {
+    {title: '文章标题', key: 'title',width:70,render: (h, params) => {
         return h('Tooltip', {
           props: { placement: 'bottom' }
         }, [
@@ -70,11 +70,11 @@ export default (that)=>{
     // }},
     {title: '审核状态', key: 'sysName', width:100,
       render:(h,params) =>{
-        return h("span",params.row.status);
+        return h("span",that.statusMap[params.row.status]);
       }
     },
     {title: '操作', key: 'action',
-      width: 100,
+      minWidth: 150,
       align: 'center',
       render: (h, params) => {
         return h('div',[
@@ -84,7 +84,7 @@ export default (that)=>{
             on: {
               click: () => {
                 that.showEdit = true
-                that.itemData = {...params.row}
+                that.artInfo = {...params.row}
                 that.itemIndex = params.index
               }
             }
@@ -94,6 +94,8 @@ export default (that)=>{
             style:{marginRight:'5px'},
             on: {
               click: () => {
+                that.artInfo = {...params.row}
+                that.itemIndex = params.index
                 that.goDetial(params.row.id)
               }
             }

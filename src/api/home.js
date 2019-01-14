@@ -28,3 +28,21 @@ export const updateArticle = (data) => {
     method: 'post'
   })
 }
+//查询机构列表
+export const pageByInstitute = (data) => {
+  return axios.request({
+    url: 'institute/pageByInstitute',
+    data: {state:'0',...data},
+    headers:{},
+    method: 'post'
+  })
+}
+//修改机构信息
+export const updateInstitute = (data) => {
+  return axios.request({
+    url: 'institute/update',
+    data: {...data,update_author:getToken()},
+    headers:{},
+    method: 'post'
+  })
+}

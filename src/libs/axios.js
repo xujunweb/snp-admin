@@ -42,6 +42,11 @@ class HttpRequest {
     instance.interceptors.response.use(res => {
       this.distroy(url)
       const { data, status } = res
+      if(res.data.code != 100){
+        Notice.error({
+          title: '系统异常'+res.data.code
+        });
+      }
       return { data, status }
     }, error => {
       this.distroy(url)

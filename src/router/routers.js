@@ -55,23 +55,21 @@ export default [
     ]
   },
   {
-    path: '/toBatDeploy',
-    name: 'toBatDeploy',
+    path: '/Jsonconfig',
+    name: 'Jsonconfig',
     meta: {
       hide: true,
-      access:[1],
     },
     component: Main,
     children: [
       {
-        path: 'toBatDeploy_page',
-        name: 'toBatDeploy_page',
+        path: 'Jsonconfig_page',
+        name: 'Jsonconfig_page',
         meta: {
-          access:[1],
           icon: 'md-person',
-          title: '批量部署'
+          title: '机构审核'
         },
-        component: () => import('@/view/deploy/deploy.vue')
+        component: () => import('@/view/Jsonconfig/Jsonconfig.vue')
       }
     ]
   },
