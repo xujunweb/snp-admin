@@ -6,8 +6,8 @@ import iView from 'iview'
 import { getToken, canTurnTo,getCookies } from '@/libs/util'
 
 const BASE_URL = process.env.NODE_ENV === 'production'
-  ? '/'
-  : '/admin'
+  ? '/admin/'
+  : '/'
 Vue.use(Router)
 const router = new Router({
   routes,

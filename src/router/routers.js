@@ -55,6 +55,25 @@ export default [
     ]
   },
   {
+    path: '/article',
+    name: 'article',
+    meta: {
+      hide: true,
+    },
+    component: Main,
+    children: [
+      {
+        path: 'article_page',
+        name: 'article_page',
+        meta: {
+          icon: 'ios-paper',
+          title: '文章审核'
+        },
+        component: () => import('@/view/article/article.vue')
+      }
+    ]
+  },
+  {
     path: '/Jsonconfig',
     name: 'Jsonconfig',
     meta: {
@@ -66,7 +85,7 @@ export default [
         path: 'Jsonconfig_page',
         name: 'Jsonconfig_page',
         meta: {
-          icon: 'md-person',
+          icon: 'md-menu',
           title: '机构审核'
         },
         component: () => import('@/view/Jsonconfig/Jsonconfig.vue')

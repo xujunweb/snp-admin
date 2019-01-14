@@ -3,8 +3,8 @@
     <div class="search-div">
       <Form ref="formInline" :model="formInline" :rules="ruleInline" inline>
         <FormItem prop="nickName">
-          <span class="title">机构名：</span>
-          <Input v-model="formInline.name" placeholder="请输入昵称" clearable style="width: 200px" />
+          <span class="title">昵称：</span>
+          <Input v-model="formInline.nickName" placeholder="请输入昵称" clearable style="width: 200px" />
         </FormItem>
         <FormItem prop="status">
           <span class="title">审核状态：</span>
@@ -12,12 +12,12 @@
             <Option v-for="item in statusList" :value="item.value" :key="item.value">{{ item.label }}</Option>
           </Select>
         </FormItem>
-        <!--<FormItem prop="type">-->
-          <!--<span class="title">文章类型：</span>-->
-          <!--<Select v-model="formInline.article_type" style="width:200px">-->
-            <!--<Option v-for="item in typeList" :value="item.value" :key="item.value">{{ item.label }}</Option>-->
-          <!--</Select>-->
-        <!--</FormItem>-->
+        <FormItem prop="type">
+          <span class="title">文章类型：</span>
+          <Select v-model="formInline.article_type" style="width:200px">
+            <Option v-for="item in typeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
+          </Select>
+        </FormItem>
         <FormItem>
           <Button type="primary" @click="handleSubmit('formInline')">搜索</Button>
           <Button @click="handleReset('formInline')" style="margin-left: 8px">清除条件</Button>
@@ -54,38 +54,41 @@
       <div v-if="artInfo" class="plugManage">
         <Button type="primary" @click="showEdit=true">编辑审核状态</Button>
         <div class="item">
-          <div class="left">机构logo</div>
+          <div class="left">用户头像</div>
           <div class="right">
-            <img :src="artInfo.cover_urls" class="logo"/>
+            <img :src="artInfo.user.avatar"/>
           </div>
         </div>
         <div class="item">
-          <div class="left">机构名称</div>
-          <div class="right">{{artInfo.name}}</div>
+          <div class="left">用户昵称</div>
+          <div class="right">{{artInfo.user.nickname}}</div>
         </div>
-        <!--<div class="item">-->
-          <!--<div class="left">用户身份</div>-->
-          <!--<div class="right">{{userMap[artInfo.user.type]}}</div>-->
-        <!--</div>-->
+        <div class="item">
+          <div class="left">用户身份</div>
+          <div class="right">{{userMap[artInfo.user.type]}}</div>
+        </div>
         <div class="item">
           <div class="left">审核状态</div>
           <div class="right">{{statusMap[artInfo.status]}}</div>
         </div>
         <div class="item">
-          <div class="left">主营业务</div>
-          <div class="right">{{artInfo.type}}</div>
+          <div class="left">文章标题</div>
+          <div class="right">{{artInfo.title}}</div>
         </div>
         <div class="item">
-          <div class="left">结构介绍</div>
-          <div class="right">{{artInfo.describe}}</div>
+          <div class="left">文章内容</div>
+          <div class="right">{{artInfo.content}}</div>
         </div>
         <div class="item">
           <div class="left">文章所附文件</div>
-          <div class="right">
+          <div class="right" v-if="artInfo.type=='0'">
             <Poptip placement="bottom" v-for="img in artInfo.img_urls.split(',')">
               <img :src="img" style="width: 150px;cursor: pointer;"/>
               <img :src="img" style="max-width:400px" slot="content"/>
             </Poptip>
+          </div>
+          <div class="right" v-if="artInfo.type=='1'">
+            {{artInfo.img_urls}}
           </div>
         </div>
       </div>
@@ -97,13 +100,13 @@
 </template>
 
 <script>
-  import { pageByInstitute,updateInstitute } from '@/api/home'
-  import * as mapType from '../article/mapType'
+  import { getXcxList,updateArticle } from '@/api/home'
+  import * as mapType from './mapType'
   import {mapGetters} from 'vuex'
   //表单选项
   import tableData from './tableData'
   export default {
-    name: 'Jsonconfig',
+    name: 'article',
     components: {
     },
     data () {
@@ -112,9 +115,10 @@
         isShowLog:false,
         total:0,
         formInline: {
-          name:'',  //机构名
-          phone:'',   //电话号码
-          statuses:'',  //审核状态
+          status:'',  //审核状态
+          article_type:'',     //文章类型
+          title:'',   //文章标题
+          category:'',       //文章分类
         },
         statusLine:{
           status:'',  //审核状态
@@ -157,7 +161,6 @@
       }
     },
     computed: {
-
     },
     created () {
       // if(this.access[0]===0){
@@ -185,8 +188,8 @@
        * */
       getXcxList (p) {
         return new Promise((resolve, reject)=>{
-          pageByInstitute({pageNum: p||this.thisPage, pageSize: this.pageSize, ...this.formInline}).then(res => {
-            console.log('机构列表----',res)
+          getXcxList({pageNum: p||this.thisPage, pageSize: this.pageSize, ...this.formInline}).then(res => {
+            console.log('文章列表----',res)
             if(res.data.code === 100){
               this.tableData = res.data.data.list
               this.total = res.data.data.total
@@ -225,7 +228,7 @@
         var data = null
         if(this.isAll){
           if(!this.appIds || !this.appIds.length){
-            this.$Message.error('请至少选择一个机构修改')
+            this.$Message.error('请至少选择一篇文章修改')
             return
           }
           data = {
@@ -248,9 +251,10 @@
           }, 1000)
           return
         }
-        return updateInstitute(data).then((res)=>{
+        return updateArticle(data).then((res)=>{
           if(res.data.code === 100){
             this.showEdit = false
+
             if(this.isAll){
               this.getXcxList(this.thisPage)
               this.isAll = false
@@ -334,9 +338,6 @@
       }
       .right{
         color: #999;font-size: 14px;flex: 1;
-        .logo{
-          width: 200px;
-        }
       }
     }
   }
